@@ -1,0 +1,100 @@
+  apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    labels:
+      type: data
+    name: data-volume-0
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: 30G
+    hostPath:
+      path: /mnt/ravenfs/pivotchain/mongo-data-0
+      type: ""
+        # This is just an example for matchexpression
+        # This field is required depends on the specific
+        # of the environment the resource is deployed in
+    persistentVolumeReclaimPolicy: Retain
+    storageClassName: default
+    volumeMode: Filesystem
+---
+  apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    labels:
+      type: data
+    name: data-volume-1
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: 30G
+    hostPath:
+      path: /mnt/ravenfs/pivotchain/mongo-data-1
+      type: ""
+    persistentVolumeReclaimPolicy: Retain
+    storageClassName: default
+    volumeMode: Filesystem
+
+---
+  apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    labels:
+      type: data
+    name: data-volume-2
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: 30G
+    hostPath:
+      path: /mnt/ravenfs/pivotchain/mongo-data-2
+      type: ""
+    persistentVolumeReclaimPolicy: Retain
+    storageClassName: default
+    volumeMode: Filesystem
+---
+
+
+  apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    labels:
+      type: data
+    name: data-volume-3
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: 30G
+    hostPath:
+      path: /mnt/ravenfs/pivotchain/mongo-data-3
+      type: ""
+    persistentVolumeReclaimPolicy: Retain
+    storageClassName: default
+    volumeMode: Filesystem
+---
+
+  apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    labels:
+      type: data
+    name: data-volume-4
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: 30G
+    hostPath:
+      path: /mnt/ravenfs/pivotchain/mongo-data-4
+      type: ""
+    persistentVolumeReclaimPolicy: Retain
+    storageClassName: default
+    volumeMode: Filesystem
+~
+~                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+~                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+~                      
