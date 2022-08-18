@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: guestbook
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ranjeetrj/tech-stuff-Devops.git
+    targetRevision: HEAD
+    path: agrocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+
