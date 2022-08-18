@@ -15,3 +15,17 @@ rs.add("mongo-2.mongo:27017")
 rs.add("mongo-3.mongo:27017")
 rs.status()
 
+
+
+mongo-restore-script
+
+echo "Plz enter folder name of mongodump :- "
+read folder
+echo""
+
+kubectl cp /usr/local/Mongo_backup/$folder/mongo_backup.gz mongo-0:/tmp/mongo_backup.gz 
+echo "Tar file copied inside pod--> $?"
+kubectl -it exec mongo-0 -- bash -c "mongorestore  --archive=/tmp/mongo_backup.gz --gzip --drop"
+echo "MongoRestore staus--> $?"
+
+
