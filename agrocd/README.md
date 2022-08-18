@@ -1,4 +1,4 @@
-##ARGOCD##
+## ARGOCD ##
 
 ```bash
 kubectl create namespace argocd
