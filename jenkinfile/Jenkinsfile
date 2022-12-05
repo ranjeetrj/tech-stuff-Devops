@@ -33,13 +33,13 @@ pipeline {
     // Defining post conditions
     post {
         always{
-            // sending email to team  in every condition like fail success
+            echo "sending email to team  in every condition like fail success"
         }
         success{
-            // Only when success
+            echo  "Only when success"
         }
         failure{
-            // Onlyu when failure
+            echo "Onlyu when failure"
         }
     }
 }
