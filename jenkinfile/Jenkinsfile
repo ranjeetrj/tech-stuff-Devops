@@ -14,7 +14,7 @@ pipeline {
         stage('Test') {
             when{
                 expression {
-                   env.BRANCH_NAME = dev || env.BRANCH_NAME = main
+                   env.BRANCH_NAME == 'dev' || env.BRANCH_NAME == 'main'
                 }
             }
             // Below code only execute when branch is DEV or master 
