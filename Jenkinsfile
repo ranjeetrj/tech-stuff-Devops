@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    parameters{
+        choice(name: 'environment', choices: ['dev', 'uat', 'prod'], description: 'Select environment to deploy')
+    }
     environment{
         NEW_VERSION = '1.3.3'
         SERVER_CREDENTIALS = credentials('ranjeetrj')
