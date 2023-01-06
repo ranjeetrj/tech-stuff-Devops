@@ -1,0 +1,8 @@
+#!/bin/bash
+
+#set file path
+file="/usr/local/repos/tech-stuff-Devops/shell-scripts/file.txt"
+
+while read -r line; do 
+    echo "$line"
+done < "$file"
