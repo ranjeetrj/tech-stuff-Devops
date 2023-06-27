@@ -1,0 +1,61 @@
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/enable-access-log: "false"
+  name: backend-ingress
+  namespace: default
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /event-app(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: event-app
+            port: 
+              number: 4440
+      - path: /nginx(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx
+            port:
+              number: 9000
+      # - backend:
+      #     serviceName: analytics-app
+      #     servicePort: 4441
+      #   path: /analytics-app(/|$)(.*)
+      # - backend:
+      #     serviceName: detectapi
+      #     servicePort: 8080
+      #   path: /detectapi(/|$)(.*)
+
+
+
+
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/x-forwarded-prefix: /
+    nginx.ingress.kubernetes.io/enable-access-log: "false"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 4000
+

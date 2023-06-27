@@ -1,0 +1,19 @@
+[Unit]
+Description=frp client start
+After=network.target
+After=systemd-user-sessions.service
+
+[Service]
+User=raven
+Type=simple
+ExecStart=/usr/bin/frpc -c /etc/frpc/frpc.ini
+ExecReload=/usr/bin/frpc reload -c /etc/frpc/frpc.ini
+Restart=on-failure
+RestartSec=30
+StartLimitInterval=350
+StartLimitBurst=10
+
+
+[Install]
+WantedBy=multi-user.target
+

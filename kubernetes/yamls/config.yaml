@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config
+  namespace: default
+  labels:
+    name: "config"
+  annotations:
+    keel.sh/policy: "glob:{{build_id}}"
+    keel.sh/trigger: poll
+    keel.sh/pollSchedule: "@every 30s"
+spec:
+  selector:
+    matchLabels:
+      app: config
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: config
+    spec:
+      containers:
+      - name: config
+        image: {{registry_server}}/{{client_name}}/config:{{build_id}}
+        imagePullPolicy: Always
+        volumeMounts:
+          - mountPath: /app/kube
+            name: kubeconfig
+      volumes:
+        - name: kubeconfig
+          hostPath:
+            path: /mnt/ravenfs/pivotchain
+            type: Directory
+      imagePullSecrets:
+      - name: raven-registry

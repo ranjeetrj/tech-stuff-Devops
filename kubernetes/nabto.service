@@ -1,0 +1,20 @@
+[Unit]
+Description=Nabto server start
+After=network.target
+After=systemd-user-sessions.service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=raven
+Type=simple
+ExecStart=/bin/sh -c 'exec /bin/unabto_tunnel  -d DEVICE_ID  -k KEY   --allow-port 554 --allow-host CAM_IP --allow-port 55200 --allow-port 8088 --allow-host WIFI_IP --no-access-control' 
+Restart=on-failure
+RestartSec=30
+StartLimitInterval=350
+StartLimitBurst=10
+
+
+[Install]
+WantedBy=multi-user.target
+

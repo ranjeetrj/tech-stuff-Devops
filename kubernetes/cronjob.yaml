@@ -1,0 +1,27 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: delete-alerts
+spec:
+  schedule: "0 0 */20 * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: delete-alerts
+            image: pivotchaindata.com/raven-client/cron
+            imagePullPolicy: IfNotPresent
+            args:
+                - /bin/bash
+                - -c
+                - date;output=`echo "db.camera.distinct('state')" | mongo mongo:27017/raven|tail -n 2 |head -n 1| awk -F '"' {'print$2'}`; echo "State Name:$output";state=`echo "${output// /_}"`; echo "/tmp/$state"; ls /tmp/$state | wc -l ; ls -lR | find /tmp/$state  -type f -mtime +10 -delete ;
+            volumeMounts:
+            - name: glusterfs
+              mountPath: /tmp
+          volumes:
+          - name: glusterfs
+            hostPath:
+              path: /mnt/ravenfs/pivotchain
+              type: Directory
+          restartPolicy: OnFailure

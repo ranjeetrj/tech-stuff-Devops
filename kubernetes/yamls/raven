@@ -1,0 +1,642 @@
+source ./.env
+option=0
+until [ "$option" = "12" ]
+do
+echo -e 'What do you want to do\n'
+echo '1. Install pre-requisities and k8s componants'
+echo '2. Create K8s cluster'
+echo '3. Pull the docker Images'
+echo '4. Deploy the base services'
+echo '5. Delete the base services'
+echo '6. Reset kubernetes Cluster completely'
+echo '7. Exit'
+
+
+echo "started the script"
+echo 'Please Enter your choice:'
+read option
+
+	case "$option" in
+		1)
+		echo -e " |--------------------------Install pre-requisities and k8s componants--------------------------------|"
+		echo "Pressed 1"
+
+k8sversion=1.23.3-00
+dockversion=5:20.10.12~3-0~ubuntu-$(lsb_release -cs)
+apt-get update -y
+
+
+echo "Installing required packages"
+apt-get install openssh-server vim git iputils-ping vim curl gcc tmux htop -y
+apt-get install dialog
+echo "Installing docker,k8s componants"
+swapoff -a
+apt-get install apt-transport-https ca-certificates curl software-properties-common -y
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+apt-get update -y
+
+apt-get install docker-ce=5:20.10.12~3-0~ubuntu-bionic docker-ce-cli=5:20.10.12~3-0~ubuntu-bionic containerd.io -y
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+echo 'deb http://apt.kubernetes.io/ kubernetes-xenial main' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+apt-get update -y
+#apt-get install kubelet kubeadm kubectl -y
+apt-get install kubeadm=$k8sversion kubectl=$k8sversion kubelet=$k8sversion -y
+
+sleep 10s
+cat <<EOF | sudo tee /etc/docker/daemon.json
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "storage-driver": "overlay2"
+}
+EOF
+sleep 10s
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+sleep 10s
+
+echo "Done with the installation of prerequisities, docker and k8s componants"
+
+
+		;;
+
+		2)
+		echo -e " |---------------------------------- Create K8s cluster--------------------------------|"
+
+lan_ip=$(ip a| grep eno | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*')
+echo -e $'\e[0;33m'LAN IP4 : $'\e[1;36m' $lan_ip $'\e[0m'
+echo ""
+sudo sed -i '/swap/d' /etc/fstab
+echo "Disabled swap permanently "
+swapoff -a
+hostnamectl set-hostname master
+echo "set hostname --> $? "
+kubeadm init  --pod-network-cidr=10.244.0.0/16 
+echo "kubeadm init command executed successfully --> $? "
+mkdir -p $HOME/.kube
+cp -rf /etc/kubernetes/admin.conf $HOME/.kube/config
+chown $(id -u):$(id -g) $HOME/.kube/config
+sudo bash -c 'echo "serializeImagePulls: false" >> /var/lib/kubelet/config.yaml'
+sudo systemctl restart kubelet.service
+sleep 10s
+echo "kubelet config updated -->$?"
+kubectl apply -f ../kube-flannel.yml
+#kubectl apply -f ../calico.yaml
+echo "Deployed flannel network plugin --> $?"
+kubectl taint nodes --all node-role.kubernetes.io/master-
+echo "tainted master node to deploy the applications --> $?"
+####
+if [ -d /mnt/ravenfs/pivotchain/ ]; then
+        if [ -z "$(ls -A /mnt/ravenfs/pivotchain/mongodb/)" ]; then
+                tar -xvzf mongodb.tar.gz -C /mnt/ravenfs/pivotchain/
+                echo "dbata successfully extracted --> $?"
+        else
+                echo "mongodb details exits already"
+        fi
+else 
+	mkdir -p /mnt/ravenfs/pivotchain/
+	echo "/mnt/ravenfs/pivotchain/ directory created --> $? "
+	tar -xvzf mongodb.tar.gz -C /mnt/ravenfs/pivotchain/
+        echo "dbata successfully extracted --> $?"
+fi
+####
+mv mongodb.tar.gz /mnt/ravenfs/pivotchain/
+cp -rf $HOME/.kube/config /mnt/ravenfs/pivotchain/kubeconfig
+echo "Copied config file into /mnt/ravenfs/pivotchain/ --> $? "
+kubectl apply -f keel-service.yaml
+kubectl -n keel get pods
+#kubectl apply -f dns.yaml
+
+		;;
+
+
+		3)
+		echo -e " |----------------------------------Pulling the docker images --------------------------------|"
+
+
+read -s -p "Please enter the docker registry Password: " registry_pass
+
+CURRENT=$(df / | grep / | awk '{ print $5}' | sed 's/%//g')  
+THRESHOLD=70  
+ if [ "$CURRENT" -gt "$THRESHOLD" ] ; then  
+
+if (dialog --title "Message" --yesno " Your root partition getting full.please delete unwanted files otherwise your docker images will get deleted. Used: $CURRENT%, Do you still wanna proceed?" 15 25)
+then 
+echo "proceeding for risky"
+
+echo "Pulling The Docker Images"
+
+
+echo -e 'Select the required option'
+echo 1. Proceed with the docker image pulling
+echo 2. Dont proceed with the docker image pulling
+
+read n
+
+case "$n" in 
+
+	1) echo Proceding with pulling docker images
+	echo "REGISTRY_SERVER :--> $registry_server"
+	echo "CLIENT_NAME :--> $client_name"
+	echo "Done with the reading defined variables"
+
+
+docker login $registry_server -u="$registry_user" -p="$registry_pass"
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Docker registry login done, proceeding with the pulling docker images$'\e[0m'
+
+
+################# PULLING THE IMAGES ####################
+
+docker pull $registry_server/$client_name/config:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Config image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' Config image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/dal:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Dal image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' Dal image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/event-app:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Event-app image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' Event-app image pulling failed $'\e[0m'
+fi
+
+
+docker pull $registry_server/$client_name/nginx:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' nginx image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' nginx image pulling failed $'\e[0m'
+fi
+
+
+docker pull $registry_server/$client_name/frontend:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' frontend image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' frontend image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/mongo:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Mongo image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' Mongo image pulling failed $'\e[0m'
+fi
+
+
+
+docker pull $registry_server/nginxingress:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Nginxingress image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' Nginxingress image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/sync-db:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' sync-db image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' sync-db image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/detectapi:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' detectapi image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' detectapi image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/raven:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Raven image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' Raven image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/ffmpeg-relay:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' ffmpeg-relay image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' ffmpeg-relay image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/livestream:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' livestream image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' livestream image pulling failed $'\e[0m'
+fi
+
+docker logout $registry_server
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Registry logout successfully $'\e[0m'
+else
+echo  $'\e[1;31m' Registry logout failed $'\e[0m'
+fi
+
+
+else
+echo  $'\e[1;31m' Docker registry login failed, Not proceeding with docker image pulling $'\e[0m'
+fi
+
+
+esac
+
+fi
+else 
+echo "Pulling The Docker Images"
+
+
+read -s -p "Please enter the docker registry Password: " registry_pass
+
+echo -e 'Select the required option'
+echo 1. Proceed with the docker image pulling
+echo 2. Dont proceed with the docker image pulling
+
+read n
+
+case "$n" in 
+
+	1) echo Proceeded with the pulling docker images
+	echo "CLIENT_NAME :--> $client_name"
+	echo "Done with the reading defined variables"
+
+
+docker login $registry_server -u="$registry_user" -p="$registry_pass"
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Docker registry login done, proceeding with the pulling docker images$'\e[0m'
+
+
+################# PULLING THE IMAGES ####################
+
+docker pull $registry_server/$client_name/config:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Config image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' Config image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/dal:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Dal image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' Dal image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/event-app:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Event-app image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' Event-app image pulling failed $'\e[0m'
+fi
+
+# docker pull $registry_server/$client_name/analytics-app:$build_id
+# if [ $? == 0 ];
+# then
+# echo $'\e[1;31m' analytics-app image pulled successfully $'\e[0m'
+# else
+# echo  $'\e[1;31m' analytics-app image pulling failed $'\e[0m'
+# fi
+
+docker pull $registry_server/$client_name/nginx:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' nginx image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' nginx image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/frontend:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' frontend image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' frontend image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/sync-db:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' sync-db image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' sync-db image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/detectapi:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' detectapi image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' detectapi image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/raven:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Raven image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' Raven image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/ffmpeg-relay:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' ffmpeg-relay image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' ffmpeg-relay image pulling failed $'\e[0m'
+fi
+
+
+docker pull $registry_server/$client_name/mongo:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Mongo image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' Mongo image pulling failed $'\e[0m'
+fi
+
+
+docker pull $registry_server/nginxingress:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' NginxLB image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' NginxLB image pulling failed $'\e[0m'
+fi
+
+docker pull $registry_server/$client_name/livestream:$build_id
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' livestream image pulled successfully $'\e[0m'
+else
+echo  $'\e[1;31m' livestream image pulling failed $'\e[0m'
+fi
+
+
+
+docker logout $registry_server
+if [ $? == 0 ];
+then
+echo $'\e[1;31m' Registry logout successfully $'\e[0m'
+else
+echo  $'\e[1;31m' Registry logout failed $'\e[0m'
+fi
+
+
+else
+echo  $'\e[1;31m' Docker registry login failed, Not proceeding with docker image pulling $'\e[0m'
+fi
+
+
+esac
+
+
+
+fi
+
+;;
+
+		4)
+		echo -e " |---------------------------------- Deploying raven base services ------------------------------|"
+
+
+read -s -p "Please enter the docker registry Password: " registry_pass		
+
+
+echo "DEPLOYING BASE SERVICES"
+
+echo -e 'Select the required option'
+echo 1. Proceed with the deployment
+echo 2. Dont proceed with the deployment
+
+read n
+
+case "$n" in 
+
+	1) echo Proceeded with the deployment
+#	echo "REGISTRY_SERVER :--> $registry_server"
+	echo "CLIENT_NAME :--> $client_name"
+#	echo "BUILD_ID: --> $build_id"
+#	echo "REGISTRY_USER --> $registry_user"
+	echo "Done with the reading defined variables"
+wifi_ip=$(ip a | grep wl | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*')
+echo -e $'\e[0;33m'WiFi IP4 :$'\e[1;36m' $wifi_ip$'\e[0m'
+
+echo $wifi_ip
+
+
+docker login $registry_server -u="$registry_user" -p="$registry_pass"
+
+kubectl create secret generic raven-registry  --from-file=.dockerconfigjson=/root/.docker/config.json --type=kubernetes.io/dockerconfigjson	
+echo "docker registry secret created successfully --> $?"
+docker logout $registry_server
+#############################  CREATING AND DELETING CONFIG POD #########################
+kubectl apply -f mongodb-secrets.yaml
+kubectl get configmap |grep backend-config
+if [ $? == 0 ];
+then
+kubectl delete configmap backend-config ffmpeg-yaml frontend-config kubeconfig raven-yaml livedep-yaml
+cat config.yaml | sed "s/{{build_id}}/$build_id/g"|sed "s/{{client_name}}/$client_name/g"|sed "s/{{registry_server}}/$registry_server/g" |kubectl apply -f -
+
+echo $'\e[1;31m'Already created configmap deleted and newly created $'\e[0m'
+else
+#kubectl apply -f config.yaml
+cat config.yaml | sed "s/{{build_id}}/$build_id/g"|sed "s/{{client_name}}/$client_name/g"|sed "s/{{registry_server}}/$registry_server/g" |kubectl apply -f -
+echo "creating configmap "
+echo "------------------------------------"
+sleep 5s
+
+strmatch="All configmaps created"
+ runmatch="Running"
+ c_time=$(date +%s)
+ c_end_time=$((c_time+1000))
+
+while true
+do
+	        c_time=$(date +%s)
+                pod=$(kubectl get po | awk {'print$1'} | grep config )
+                run=$(kubectl get pods $pod | awk '{print $3}' | tail -n 1)
+                check=`kubectl logs $pod | tail -n 1`
+                #kubectl logs -f $pod
+		if [[ $c_time -le $c_end_time ]];
+		then
+			if [[ $run == $runmatch  &&  $check == $strmatch ]];
+			then
+				echo "Stream matched, Config Pod Created..."
+                		break
+                	else
+                		echo "Configmaps not Created Yet..."	
+               		fi
+		else
+			echo -e $'\e[0;31m'Time Exceeded plz Check !!!..$'\e[0m'
+			exit
+	        fi
+done
+
+
+
+echo "------------------------------------------"
+fi
+sleep 5s
+
+#######################  NGINX INGRESS SVC ################################
+
+kubectl apply -f nginx-ingress-svcs.yaml
+#echo  $'\e[1;31m' create nginx-ingress-svcs $'\e[0m'
+runmatch="Running"
+readymatch="1/1"
+c_time=$(date +%s)
+c_end_time=$((c_time+1000))
+
+ while true
+ do
+         c_time=$(date +%s)
+	 ready=$(kubectl get po -n ingress-nginx | grep controller | awk '{print $2}')
+         run=$(kubectl get po -n ingress-nginx | grep controller | awk '{print $3}')
+	 if [[ $c_time -le $c_end_time ]];
+         then
+                 if [[ $run == $runmatch  &&  $ready == $readymatch ]];
+                 then
+                         echo $'\e[0;32m'NginxIngress Pods, deployed successfully and in Running Successfully...$'\e[0m'
+                         break
+                 else
+			 sleep 5s
+                         echo "Nginx pod not in Ready State"
+			 echo $ready
+                 fi
+         else
+                 echo -e $'\e[0;31m'Time Exceeded plz Check Nginxingress pods. If it is Running and Ready then apply back-front-nginx-ingress.yaml file !!!..$'\e[0m'
+                 exit
+         fi
+done
+
+
+
+
+######################## RAVEN APP ################################
+
+cat base-services.yaml | sed "s/{{build_id}}/$build_id/g"|sed "s/{{client_name}}/$client_name/g"|sed "s/{{registry_server}}/$registry_server/g" |kubectl apply -f -
+#echo  $'\e[1;31m' raven app $'\e[0m'
+
+######################## BACK-FRONTEND INGRESS ################################
+kubectl apply -f back-front-nginx-ingress.yaml
+#echo  $'\e[1;31m' back-front-nginx-ingress  $'\e[0m'
+
+#cat deployment-update.yaml | sed "s/{{build_id}}/$build_id/g"|sed "s/{{client_name}}/$client_name/g"|sed "s/{{registry_server}}/$registry_server/g" |sudo kubectl apply -f -
+echo "Applying the deployment-update deployment --> ?"
+
+#################################################################################
+	;;
+
+        2) echo cancel the deployment
+	;;	
+esac
+
+
+		;;
+
+		5)
+		echo -e " |---------------------------------- Deleting base services --------------------------------|"
+
+echo "DELETING BASE SERVICES"
+
+
+echo -e 'Select the required option'
+echo 1. Proceed with the deletion
+echo 2. Dont proceed with the deletion
+
+read n
+
+case "$n" in 
+
+	1) echo Proceeded with the deletion of application
+#	echo "REGISTRY_SERVER :--> $registry_server"
+	echo "CLIENT_NAME :--> $client_name"
+#	echo "BUILD_ID: --> $build_id"
+	echo "Done with the reading defined variables"
+
+	cat base-services.yaml | sed "s/{{build_id}}/$build_id/g"|sed "s/{{client_name}}/$client_name/g"|sed "s/{{registry_server}}/$registry_server/g" |kubectl delete -f -
+	cat config.yaml | sed "s/{{build_id}}/$build_id/g"|sed "s/{{client_name}}/$client_name/g"|sed "s/{{registry_server}}/$registry_server/g" |kubectl delete -f -
+	
+	kubectl delete -f back-front-nginx-ingress.yaml --grace-period=0 --force
+	kubectl delete deployment nginx-ingress-controller -n ingress-nginx
+	kubectl get po -n ingress-nginx |tail -n 1 |awk -F " " {'print$1'} | xargs  kubectl delete po  -n ingress-nginx --force --grace-period=0
+	kubectl delete -f nginx-ingress-svcs.yaml --grace-period=0 --force
+	kubectl delete secret raven-registry --grace-period=0 --force
+	kubectl delete po config --force
+        #kubectl delete deployment update
+	kubectl delete configmap backend-config ffmpeg-yaml frontend-config kubeconfig raven-yaml livedep-yaml frontdep-yaml frontser-yaml liveser-yaml
+#	docker ps -a |grep nginxlb |awk -F " " {'print$1'} |xargs docker rm -f	
+	echo  $'\e[1;31m' Deleted all app, secret and configmap $'\e[0m'
+	;;
+
+        2) echo cancel the deletion
+	;;	
+esac
+
+
+
+		;;
+
+		6)
+		echo -e " |---------------------------------- Reset kubernetes cluster--------------------------------|"
+		
+if (dialog --title "Message" --yesno "Do you really want to RESET the kubernetes cluster?" 15 25)
+then 
+        sudo kubeadm reset -f 
+ 	sudo systemctl stop kubelet  
+ 	sudo systemctl stop docker && 
+	sudo rm -rf /var/lib/cni/ && 
+ 	sudo rm -rf /var/lib/kubelet/* && 
+ 	sudo rm -rf /etc/cni/ && 
+ 	sudo ifconfig cni0 down && 
+ 	sudo ifconfig flannel.1 down && 
+ 	sudo ifconfig docker0 down && 
+ 	sudo ip link delete cni0 && 
+ 	sudo ip link delete flannel.1
+	systemctl start docker
+	systemctl enable docker
+
+	echo "Reset k8s cluster --> $?"
+else
+	echo "Cluster reset cancelled"
+fi
+		;;
+
+
+		7)
+			exit 1
+				;;
+			*)
+			echo "Invalid choice...!!!!!!!"
+				;;
+esac
+done
+

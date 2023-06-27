@@ -1,0 +1,539 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo
+  namespace: default
+  labels:
+    name: "mongo"
+  annotations:
+    keel.sh/policy: glob:{{build_id}}
+    keel.sh/trigger: poll
+    keel.sh/pollSchedule: "@every 30s"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+        selector: mongo
+    spec:
+      containers:
+      - name: mongo
+        image: {{registry_server}}/{{client_name}}/mongo:{{build_id}}
+        imagePullPolicy: Always
+        # MongoDB AUTH Commits start
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongo-creds
+              key: username
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongo-creds
+              key: password
+       # MongoDB AUTH Commits endds
+        volumeMounts:
+        - mountPath: /data/db
+          name: mongo-volume
+      volumes:
+      - name: mongo-volume
+        hostPath:
+          path: /mnt/ravenfs/pivotchain/mongodb
+          type: Directory  
+      imagePullSecrets:
+      - name: raven-registry
+
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dal
+  namespace: default
+  labels:
+    name: "dal"
+  annotations:
+    keel.sh/policy: glob:{{build_id}}
+    keel.sh/trigger: poll
+    keel.sh/pollSchedule: "@every 30s"
+spec:
+  selector:
+    matchLabels:
+      app: dal
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: dal
+    spec:
+      containers:
+      - name: dal
+        image: {{registry_server}}/{{client_name}}/dal:{{build_id}}
+        # resources:
+        #   requests:
+        #     memory: "2048Mi"
+        #     cpu: "1500m"
+        #   limits:
+        #     memory: "2048Mi"
+        #     cpu: "1500m"
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /app/images
+          name: glusterfs
+        - mountPath: /app/config
+          name: config
+      volumes:
+      - name: glusterfs
+        hostPath:
+          path: /mnt/ravenfs/pivotchain
+          type: Directory
+      - name: config
+        configMap:
+          name: backend-config
+      imagePullSecrets: 
+      - name: raven-registry
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-app
+  namespace: default
+  labels:
+    name: "event-app"
+  annotations:
+    keel.sh/policy: glob:{{build_id}}
+    keel.sh/trigger: poll
+    keel.sh/pollSchedule: "@every 30s"
+spec:
+  selector:
+    matchLabels:
+      app: event-app 
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: event-app 
+    spec:
+      containers:
+      - name: event-app 
+        image: {{registry_server}}/{{client_name}}/event-app:{{build_id}}
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /app/images
+          name: glusterfs  
+        - mountPath: /app/config
+          name: config
+        - mountPath: /app/k8s
+          name: kubeconfig 
+        - mountPath: /app/raven-cam
+          name: ravenyaml
+        - mountPath: /app/ffmpeg-cam
+          name: ffmpegyaml
+        - mountPath: /app/livestream-dep
+          name: livestreamdep
+        - mountPath: /app/livestream-ser
+          name: livestreamser
+        - mountPath: /app/frontend-dep
+          name: frontendep
+        - mountPath: /app/frontend-ser
+          name: frontendser 
+      volumes:
+      - name: glusterfs
+        hostPath:
+          path: /mnt/ravenfs/pivotchain
+          type: Directory
+      - name: config
+        configMap:
+          name: backend-config 
+      - name: kubeconfig
+        configMap:
+          name: kubeconfig
+      - name: ravenyaml
+        configMap:
+          name: raven-yaml
+      - name: ffmpegyaml
+        configMap:
+          name: ffmpeg-yaml
+      - name: livestreamdep
+        configMap:
+          name: livedep-yaml
+      - name: livestreamser
+        configMap:
+          name: liveser-yaml
+      - name: frontendep
+        configMap:
+          name: frontdep-yaml
+      - name: frontendser
+        configMap:
+          name: frontser-yaml    
+      imagePullSecrets: 
+      - name: raven-registry
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: default
+  labels:
+    name: "nginx"
+  annotations:
+    keel.sh/policy: glob:{{build_id}}
+    keel.sh/trigger: poll
+    keel.sh/pollSchedule: "@every 30s"
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: {{registry_server}}/{{client_name}}/nginx:{{build_id}}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9000
+          name: video
+        - containerPort: 1935
+          name: rtmp
+        volumeMounts:
+        - mountPath: /var/video
+          name: glusterfs
+      volumes:
+      - name: glusterfs
+        hostPath:
+          path: /mnt/ravenfs/pivotchain
+          type: Directory
+      imagePullSecrets: 
+      - name: raven-registry
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: default
+  labels:
+    name: "frontend"
+  annotations:
+    keel.sh/policy: glob:{{build_id}}
+    keel.sh/trigger: poll
+    keel.sh/pollSchedule: "@every 30s"
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: {{registry_server}}/{{client_name}}/frontend:{{build_id}}
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /app/web/dist/js/configDomain
+          name: config-frontend
+        ports:
+        - containerPort: 4000
+        livenessProbe:
+          httpGet:                                                                                                                            
+            path: / 
+            port: 4000                                                                                                                        
+          initialDelaySeconds: 1
+          periodSeconds: 3
+          #      imagePullSecrets: 
+          #      - name: raven-registry
+      volumes:
+      - name: config-frontend
+        configMap:
+          name: frontend-config
+      imagePullSecrets:
+      - name: raven-registry
+
+---
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sync-db
+  namespace: default
+  labels:
+    name: "sync-db"
+  annotations:
+    keel.sh/policy: glob:{{build_id}}
+    keel.sh/trigger: poll
+    keel.sh/pollSchedule: "@every 30s"
+spec:
+  selector:
+    matchLabels:
+      app: sync-db
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sync-db
+    spec:
+      containers:
+      - name: sync-db
+        image: {{registry_server}}/{{client_name}}/sync-db:{{build_id}}
+        livenessProbe:
+          exec:
+            command:
+            - ls
+            - /app
+          initialDelaySeconds: 30
+          periodSeconds: 300
+        # resources:
+        #   requests:
+        #     memory: "2048Mi"
+        #     cpu: "1500m"
+        #   limits:
+        #     memory: "2048Mi"
+        #     cpu: "1500m"
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /app/k8s
+          name: kubeconfig 
+        - mountPath: /app/images
+          name: glusterfs
+        - mountPath: /app/config
+          name: config
+      volumes:
+      - name: kubeconfig
+        configMap:
+          name: kubeconfig
+      - name: glusterfs
+        hostPath:
+          path: /mnt/ravenfs/pivotchain
+          type: Directory
+      - name: config
+        configMap:
+          name: backend-config
+      imagePullSecrets: 
+      - name: raven-registry
+      dnsPolicy: ClusterFirstWithHostNet
+      dnsConfig:
+        nameservers:
+        - 8.8.8.8
+        searches:
+        - google.com
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: detectapi
+  namespace: default
+  labels:
+    name: "detectapi"
+  annotations:
+    keel.sh/policy: glob:{{build_id}}
+    keel.sh/trigger: poll
+    keel.sh/pollSchedule: "@every 30s"
+
+spec:
+  selector:
+    matchLabels:
+      app: detectapi
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: detectapi
+    spec:
+      containers:
+      - name: detectapi
+        image: {{registry_server}}/{{client_name}}/detectapi:{{build_id}}
+        #resources:
+        #  requests:
+        #    memory: "4096Mi"
+        #    cpu: "4000m"
+        #  limits:
+        #    memory: "4096Mi"
+        #    cpu: "4000m"
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: detectapi        
+        volumeMounts:
+        - mountPath: /app/images
+          name: glusterfs
+        - mountPath: /app/config
+          name: config
+      volumes:
+      - name: glusterfs
+        hostPath:
+          path: /mnt/ravenfs/pivotchain
+          type: Directory
+      - name: config
+        configMap:
+          name: backend-config
+      imagePullSecrets: 
+      - name: raven-registry
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: detectapi
+spec:
+  type: ClusterIP
+  selector:
+    app: detectapi
+  ports:
+    - name: detectapi
+      protocol: TCP
+      port: 8080
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: sync-db
+spec:
+  type: ClusterIP
+  selector:
+    app: database
+  ports:
+    - name: sync-db
+      protocol: TCP
+      port: 8089
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+spec:
+  type: ClusterIP
+  selector:
+    app: database
+  ports:
+    - name: dal
+      protocol: TCP
+      port: 27017
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: dal
+spec:
+  type: ClusterIP
+  selector:
+    app: dal
+  ports:
+    - name: dal
+      protocol: TCP
+      port: 4445
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: event-app 
+spec:
+  type: ClusterIP
+  selector:
+    app: event-app 
+  ports:
+    - name: event-app 
+      protocol: TCP
+      port: 4440
+
+# ---
+
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: analytics-app
+# spec:
+#   type: ClusterIP
+#   selector:
+#     app: analytics-app
+#   ports:
+#     - name: analytics-app
+#       protocol: TCP
+#       port: 4441
+
+---
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx
+  ports:
+    - name: nginx
+      protocol: TCP
+      port: 9000
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+  ports:
+    - name: frontend
+      protocol: TCP
+      port: 4000
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ffmpeg-rtmp
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx
+  ports:
+    - name: ffmpeg-rtmp
+      protocol: TCP
+      port: 1935
+
+---
+
+apiVersion: v1
+kind: Service   
+metadata:
+  name: mqtt
+spec:
+  type: ClusterIP
+  selector:
+    app: dal
+  ports:
+    - name: mqtt
+      protocol: TCP   
+      port: 9001
