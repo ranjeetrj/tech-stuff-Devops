@@ -1,0 +1,31 @@
+Pls find the question dump for SRE/ DevOps opening.
+Introduction
+Which AWS service do you have used on AWS?
+What is the AWS autoscaling group?
+How to troubleshoot AWS lambda issue?
+It is possible to do VPC peering between two VPC on different AWS regions.
+What is CI and CD?
+Which cicd tools did you use?
+Different  types of Jenkins pipeline.
+What are the k8s container types?
+What is a sidecar container?
+What you will consider while setting up highly available architecture?
+Difference  between NACL and EC2 security group?
+What is CDN?
+For which purpose did you use CND in your application?
+How to secure AWS S3 access?
+How does CND work?
+Why do we use k8s?
+How to write k8s manifest for deployment?
+What type of troubleshooting did you do in k8s?
+What is a helm chart? How do you deploy a helm chart using ci/cd?
+What is the difference between sensible and terraform?
+Explain the process of creation infra using terraform.
+What monitoring tools you used to monitor the application/servers.
+How do you plan for capacity planning?
+SRE-
+Scenario based questions
+Aws, vps, daemon sets, Kubernetes, architecture
+subnet, security groups
+terraform - import command, state file
+K8s - ingress controller, monitoring tools, Grafana, Prometheus

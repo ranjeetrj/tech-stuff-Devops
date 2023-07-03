@@ -26,7 +26,3 @@ variable "tags" {
     Project = "Terraform"
   }
 }
-
-variable "ami" {}
-variable "key_pair" {}
-variable "instance_size" {}

@@ -1,0 +1,1 @@
+{"Modules":[{"Key":"my_default_vpc","Source":"../module/aws_network","Dir":"../module/aws_network"},{"Key":"","Source":"","Dir":"."},{"Key":"my_vpc_staging","Source":"../module/aws_network","Dir":"../module/aws_network"}]}
