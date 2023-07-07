@@ -152,3 +152,16 @@ kubectl get nodes
 kubectl get pods
 kubectl auth can-i delete deployment
 kubectl auth can-i create deployment
+
+
+For multiple user in aws-auth configmap 
+  mapUsers: |
+    - userarn: arn:aws:iam::804872348047:user/developers
+      username: developers
+      groups: 
+      - developer-read
+      
+    - userarn: arn:aws:iam::804872348047:user/eks
+      username: eks
+      groups: 
+      - full-access
