@@ -1,0 +1,154 @@
+Read only access: -->
+
+To access EKS cluster from diff IAM user first create IAM USER name called developers,
+create secret key and access key of it.
+configure it on your machine.
+aws configure --profile developers
+aws configure list-profiles
+export AWS_PROFILE=developers
+
+Create one IAM GROUP name called junior-dev.
+
+Create one role named view-eks-cluster  and attache below policy to it.
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "eks:DescribeNodegroup",
+                "eks:ListNodegroups",
+                "eks:DescribeCluster",
+                "eks:ListClusters",
+                "eks:AccessKubernetesApi",
+                "ssm:GetParameter",
+                "eks:ListUpdates",
+                "eks:ListFargateProfiles"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+
+
+Attach above role to junior-dev group and add developers user to this group.
+
+By using main user create below cluster role and cluster role binding to give access to developer user.
+
+
+------------------------------------------------------------------------
+cat read-groups.yaml 
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: developer-read
+rules:
+- apiGroups: ["*"]
+  resources: ["deployments", "configmaps", "pods", "secrets", "services"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: developer-read
+subjects:
+- kind: Group
+  name: developer-read
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: developer-read
+  apiGroup: rbac.authorization.k8s.io
+
+------------------------------------------------------------------------ 
+
+Now edit the aws-auth configmap using the main user by using below command: 
+
+kubectl edit -n kube-system configmap/aws-auth
+
+add below paragraph into this configmap
+
+  mapUsers: |
+    - userarn: arn:aws:iam::804872348047:user/developers
+      username: developers
+      groups: 
+      - developer-read
+
+Save above changes.
+Now switch to developer user using below command:
+aws eks update-kubeconfig --region us-east-2 --name CLUSTER-NAME --profile developers
+
+Now check that you will get read only access to k8s cluster:
+
+kubectl get pods
+kubectl get svc
+kubectl auth can-i delete deployment
+kubectl auth can-i create deployment
+
+You don't have permission to read the node resources.
+kubectl get nodes
+
+=========================================================================
+Full access --->
+
+To give full access to k8s cluster create eks user from IAM side and give full admin access to it.
+create secret and access key of it.
+configure it on your machine.
+
+aws configure --profile admin
+aws configure list-profiles
+export AWS_PROFILE=admin
+
+By using main user create below cluster role and cluster role binding to give access to developer user.
+
+-----------------------------------------------------------------------------------------------------
+cat access-cluster.yaml 
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: full-access
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: full-access
+subjects:
+- kind: Group
+  name: full-access
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: full-access
+  apiGroup: rbac.authorization.k8s.io
+
+
+-----------------------------------------------------------------------------------------------------
+
+Now edit the aws-auth configmap using the main user by using below command: 
+
+kubectl edit -n kube-system configmap/aws-auth
+
+add below paragraph into this configmap
+
+  mapUsers: |
+    - userarn: arn:aws:iam::804872348047:user/eks
+      username: eks
+      groups: 
+      - full-access
+
+Save above changes.
+Now switch to eks user using below command:
+aws eks update-kubeconfig --region us-east-2 --name CLUSTER-NAME --profile admin
+
+Now check that you will get full access to k8s cluster:
+kubectl get nodes
+kubectl get pods
+kubectl auth can-i delete deployment
+kubectl auth can-i create deployment
