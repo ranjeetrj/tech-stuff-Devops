@@ -1,0 +1,64 @@
+###################   AWS CODECOMMIT    #######################
+1] login to aws account
+
+2] go to aws codecommit service.
+
+3] create repo
+
+4] create one IAM user for accessing the repos, create access key and secret github credintial for that created user.
+
+
+5] create admin user and admin group(admin group has full access)
+This is the admin user responsible for merging the requests.. this user present in only admin group.
+admin user:
+helm-at-804872348047
+
+
+6] create junior dev group and  dev user and add this user in junior dev group:
+create junior dev group and add below custompolicy to this group so that this group member can't directory commit/push/merge to master branch,
+make sure this dev users present in admin group also so that they can pull the code.
+dev user:
+codecommit-at-804872348047
+
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Deny",
+            "Action": [
+                "codecommit:GitPush",
+                "codecommit:DeleteBranch",
+                "codecommit:PutFile",
+                "codecommit:MergeBranchesByFastForward",
+                "codecommit:MergeBranchesBySquash",
+                "codecommit:MergeBranchesByThreeWay",
+                "codecommit:MergePullRequestByFastForward",
+                "codecommit:MergePullRequestBySquash",
+                "codecommit:MergePullRequestByThreeWay"
+            ],
+            "Resource": "arn:aws:codecommit:*:*:*",
+            "Condition": {
+                "StringEqualsIfExists": {
+                    "codecommit:References": [
+                        "refs/heads/master"
+                    ]
+                },
+                "Null": {
+                    "codecommit:References": "false"
+                }
+            }
+        }
+    ]
+}
+
+
+
+7] create one branch and push this branch using dev user to repo.
+
+8] create PR using dev user. and accept this PR using admin user.
+
+
+
+
+

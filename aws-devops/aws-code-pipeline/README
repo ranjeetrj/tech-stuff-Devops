@@ -1,0 +1,6 @@
+Prerequisites:
+create two elastic beanstalks env.. 1] my-first-webapp 2] prod env....deloy version is nodejs
+
+create pipeline..give name....source--> codecommit--->branch--->deploy-to-aws-elasticbeanstalk..and select above created env....
+
+again add stages like manual approval and deloytoprod.
