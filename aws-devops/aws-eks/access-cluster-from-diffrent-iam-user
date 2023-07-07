@@ -1,3 +1,7 @@
+IMP link:
+https://antonputra.com/kubernetes/add-iam-user-and-iam-role-to-eks/#add-iam-user-to-eks-cluster
+
+
 Read only access: -->
 
 To access EKS cluster from diff IAM user first create IAM USER name called developers,
