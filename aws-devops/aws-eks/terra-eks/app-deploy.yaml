@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: game-deployment
+  labels:
+    app: game
+spec:
+  selector:
+    matchLabels:
+      app: game
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: game
+    spec:
+      containers:
+      - name: game
+        image: bhargavshah86/kube-test:v0.1
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            memory: 256Mi
+            cpu: "250m"
+          requests:
+            memory: 128Mi
+            cpu: "80m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: game
+spec:
+  selector:
+    app: game
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30081   
+  type: NodePort
