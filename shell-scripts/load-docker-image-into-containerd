@@ -1,0 +1,18 @@
+#!/bin/bash
+read -p "Please enter the docker Image name: " image
+
+pod=`echo $image | awk -F "/" {'print$3'} | awk -F ":" {'print$1'}`
+
+echo "Inserted docker image name is $image"
+
+echo "saving docker image ...."
+docker save -o $PWD/$pod.tar $image
+echo "Docker image saved --> $?"
+echo "extracting docker image into containerd ....."
+ctr -n=k8s.io images import $pod.tar
+
+rm -rvf $pod
+echo "removed $pod"
+kubectl get po |grep $pod |awk -F " " {'print$1'} |  xargs kubectl delete po --force
+echo "Restarted $pod"
+
