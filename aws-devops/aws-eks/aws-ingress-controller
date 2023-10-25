@@ -1,0 +1,93 @@
+In the previous blogs we have seen that how to crate customized vpc and how to launch eks cluster inside inside private vpc using terraform.
+In this blog we are going to check how to deploy aws ingress controller inside eks cluster, deploy application and access it using ALB.
+
+Prerequities:
+AWS CLI ACCESS
+VPC AND EKS CLUSTER SHOULD BE RUNNING ACCOURINGLY PREVIOUS BLOGS:
+
+INTRODUCTION OF AWS INGRESS CONTROLLER:
+
+The AWS ALB ingress controller allows you to easily provision an AWS Application Load Balancer (ALB) from a Kubernetes ingress resource. Kubernetes users have been using it in production for years and it’s a great way to expose your Kubernetes services in AWS.
+
+HOW TO DEPLOY IT:
+
+Step 1] 
+Tag your public subnet using below key value pair:
+key = kubernetes.io/role/elb |  value = 1
+
+Step 2]
+Create OIDC IDENTITY using aws console:
+
+Step 3] 
+Create IAM POLICY:
+
+curl -o iam-policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
+
+aws iam create-policy     --policy-name AWSLoadBalancerControllerIAMPolicy     --policy-document file://iam-policy.json
+
+Step 4]
+Create Trust policy:
+cat >load-balancer-role-trust-policy.json <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::ACCOUNT-ID:oidc-provider/oidc.eks.REGION.amazonaws.com/id/OIDC-ID"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "oidc.eks.REGION.amazonaws.com/id/OIDC-ID:aud": "sts.amazonaws.com",
+                    "oidc.eks.REGION.amazonaws.com/id/OIDC-ID:sub": "system:serviceaccount:kube-system:aws-load-balancer-controller"
+                }
+            }
+        }
+    ]
+}
+EOF
+
+Create Role
+
+aws iam create-role   --role-name AmazonEKSLoadBalancerControllerRole   --assume-role-policy-document file://"load-balancer-role-trust-policy.json"
+
+Attach policy to Role:
+
+aws iam attach-role-policy   --policy-arn arn:aws:iam::888887582627:role/AmazonEKSLoadBalancerControllerRole   --role-name AmazonEKSLoadBalancerControllerRole
+
+Step 5]
+Create Service account:
+cat >aws-load-balancer-controller-service-account.yaml <<EOF
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: aws-load-balancer-controller
+  name: aws-load-balancer-controller
+  namespace: kube-system
+  annotations:
+    eks.amazonaws.com/role-arn: ARN-OF-ROLE
+EOF
+
+kubectl apply -f aws-load-balancer-controller-service-account.yaml
+
+Step 6]
+helm repo add eks https://aws.github.io/eks-charts
+helm repo update eks
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller   -n kube-system   --set clusterName=eks-cluster-terra   --set serviceAccount.create=false   --set serviceAccount.name=aws-load-balancer-controller
+
+kubectl get deployment -n kube-system aws-load-balancer-controller
+kubectl apply -f ingress.yaml
+kubectl apply -f deployment.yaml
+
+
+
+
+
+
+
+
+
+
