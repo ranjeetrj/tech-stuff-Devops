@@ -1,0 +1,11 @@
+#!/bin/bash
+echo "Enter the value of a: "
+read a
+echo "Enter the value of b: "
+read b
+if [ $a -gt $b ] 
+then
+echo "$a is greate than $b"
+else
+echo "$b is greatter than $a"
+fi

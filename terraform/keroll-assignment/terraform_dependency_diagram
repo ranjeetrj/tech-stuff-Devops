@@ -1,0 +1,23 @@
+// Terraform Resource Dependency Diagram
+digraph {
+	kerol [label=kerol shape=box]
+	kerol [label=kerol shape=box]
+	public_subnets [label=public_subnets shape=box]
+	public_subnets [label=public_subnets shape=box]
+	public_routes [label=public_routes shape=box]
+	nat [label=nat shape=box]
+	nat [label=nat shape=box]
+	private_subnets [label=private_subnets shape=box]
+	private_subnets [label=private_subnets shape=box]
+	private_routes [label=private_routes shape=box]
+	nginx [label=nginx shape=box]
+	baston [label=baston shape=box]
+	network [label=network shape=box]
+	nlb [label=nlb shape=box]
+	private_instances [label=private_instances shape=box]
+	ssh_from_baston [label=ssh_from_baston shape=box]
+	baston [label=baston shape=box]
+	network [label=network shape=box]
+	network [label=network shape=box]
+	private_instances [label=private_instances shape=box]
+}

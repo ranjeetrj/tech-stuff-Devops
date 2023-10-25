@@ -1,0 +1,29 @@
+#!/bin/bash
+echo 'Hello world!'
+n=7
+for (( i=2 ; i<=$n ; i++ ));
+do
+echo $i
+done
+
+################SAMPLE FOR LOOP###################
+
+for n in a b c;
+do
+echo $n
+done
+
+####################RANGED FOR LOOP##################
+
+for d in {1..5..2};
+do
+echo $d
+done
+
+####################ARRAY FOR LOOP#####################
+
+array=( "MY" "NAME" "RANJEET" )
+for e in ${array[@]};
+do
+echo $e
+done

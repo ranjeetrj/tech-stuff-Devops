@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Get the number from the user
+echo "Enter a number: "
+read number
+
+# Check if the number is less than 2
+if [ $number -lt 2 ]; then
+  echo "$number is not a prime number."
+  exit 0
+fi
+
+# Set the maximum divisor to the square root of the number
+maxdivisor=$(echo "sqrt($number)" | bc)
+
+# Iterate from 2 to the maximum divisor, checking if the number is divisible by any of the divisors
+for ((i=2; i<=$maxdivisor; i++)); do
+  if [ $((number % i)) -eq 0 ]; then
+    echo "$number is not a prime number."
+    exit 0
+  fi
+done
+
+# If the number is not divisible by any of the divisors, then it is a prime number
+echo "$number is a prime number."

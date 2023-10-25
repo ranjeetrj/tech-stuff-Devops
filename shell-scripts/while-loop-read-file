@@ -1,8 +1,15 @@
 #!/bin/bash
 
 #set file path
-file="/usr/local/repos/tech-stuff-Devops/shell-scripts/file.txt"
+#file="/usr/local/repos/tech-stuff-Devops/shell-scripts/file.txt"
 
-while read -r line; do 
-    echo "$line"
-done < "$file"
+#while read -r line; do 
+#    echo "$line"
+#done < "$file"
+
+i=1
+while [ $i -le  10  ] ;
+do 
+echo $i
+((i++))
+done

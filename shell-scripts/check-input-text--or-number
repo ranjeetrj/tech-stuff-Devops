@@ -1,0 +1,11 @@
+#!/bin/bash
+
+echo "Enter your input: " 
+read input
+
+if [[ "$input" =~ ^[0-9]+$ ]];
+then
+echo "This is number"
+else
+echo "This is text"
+fi
