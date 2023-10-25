@@ -1,0 +1,125 @@
+1) Install glusterfs server and client on evry node where your bricks are present.
+
+	apt-get install software-properties-common
+	add-apt-repository ppa:gluster/glusterfs-9
+	apt update
+	apt-get install glusterfs-server glusterfs-client -y
+	systemctl enable glusterd
+	
+2) Mount bricks on every node. 
+
+3) Create a trusted storage pool between the nodes
+	Ex :- 
+	gluster peer probe worker1
+	gluster peer probe worker2
+	gluster peer probe worker3
+	gluster peer probe master2
+
+4) Check peer status
+	gluster peer status
+
+5) Create Distributed GlisterFS Volume
+
+
+  ============================== Without Replicas ======================================
+  
+	gluster volume create dockervol transport tcp  master1:/bricks/1 master2:/bricks/1 master3:/bricks/1 
+        gluster volume create dockervol transport tcp  master2:/bricks/1 worker1:/bricks/1 worker2:/bricks/1 worker3:/bricks/1 force
+
+
+        gluster volume create dockervol transport tcp  master2:/bricks/1   force
+		
+		
+	===================== With Replicas ====================================
+
+gluster volume create dockervol replica 2 transport tcp master1:/data/disk1 master1:/data/disk2 master1:/data/disk3 master1:/data/disk4 force
+	
+
+
+
+
+6) Start the created volume.
+	gluster volume start glusterfsVolumeName
+
+	mount -t glusterfs localhost:dockervol /mnt/ravenfs
+7) Mount the Volume on GlusterFS client
+mount -t glusterfs localhost:dockervol /mnt/ravenfs
+
+	
+
+gluster peer detach worker2
+gluster peer probe worker1
+
+
+gluster volume rebalance distribute status
+
+gluster peer probe worker2
+gluster peer probe master1
+
+
+
+All clients mounted through the peer which is getting detached need to be remounted using one of the other active peers in the trusted storage pool to ensure client gets notification on any changes done on the gluster configuration and if the same has been done do you want to proceed? (y/n) n
+
+
+Hostname: master1
+Uuid: 3e4d74c3-b083-45a5-8007-99ca0256308a
+State: Peer in Cluster (Connected)
+
+Hostname: worker2
+Uuid: 077ed051-8a20-4fb2-9a3b-494fd4831019
+State: Peer in Cluster (Connected)
+
+
+
+sudo mount -t cifs //backupravenserver.file.core.windows.net/backup /home/raven/storage_account -o vers=3.0,credentials=/etc/smbcredentials/backupravenserver.cred,dir_mode=0777,file_mode=0777,serverino
+
+
+gluster volume create dockervol replica 2 transport tcp  worker5:/data/bricks1 worker5:/data/bricks2 worker6:/data/bricks1 worker6:/data/bricks2 worker7:/data/bricks1 worker7:/data/bricks2 force
+
+Write :- 
+gluster volume top dockervol write-perf bs 256 count 1 brick worker5:/data/bricks1 list-cnt 10
+
+Read :- 
+gluster volume top dockervol read-perf bs 256 count 1 brick worker5:/data/bricks1 list-cnt 10
+
+
+
+
+
+
+Extra Commands :- 
+
+apt-get purge glusterfs-server glusterfs-client
+
+worker1:/bricks/disk/1   worker2:/bricks/disk/1 worker3:/bricks/disk/1 worker3:/bricks/disk/2 worker3:/bricks/disk/3 worker4:/bricks/disk/1 worker4:/bricks/disk/2 worker4:/bricks/disk/3 worker5:/bricks/disk/1 worker5:/bricks/disk/2 worker6:/bricks/disk/1 worker6:/bricks/disk/2
+
+gluster volume create ravenvol transport tcp worker1:/bricks/disk/1   worker2:/bricks/disk/1 worker3:/bricks/disk/1 worker3:/bricks/disk/2 worker3:/bricks/disk/3 worker4:/bricks/disk/1 worker4:/bricks/disk/2 worker4:/bricks/disk/3 worker5:/bricks/disk/1 worker5:/bricks/disk/2 worker6:/bricks/disk/1 worker6:/bricks/disk/2 force
+
+===================================================
+Add bricks :- 
+
+gluster volume add-brick dockervol replica 2  worker6:/bricks/1 worker6:/bricks/2
+
+Remove bricks :- 
+gluster volume remove-brick dockervol replica 2  worker4:/bricks/1 worker4:/bricks/2 start
+
+
+
+==================================================
+DRDO :-
+
+Brick1: worker1:/bricks/disk/1
+Brick2: worker2:/bricks/disk/1
+Brick3: worker3:/bricks/disk/1
+Brick4: worker3:/bricks/disk/2
+Brick5: worker3:/bricks/disk/3
+Brick6: worker4:/bricks/disk/1
+Brick7: worker4:/bricks/disk/2
+Brick8: worker4:/bricks/disk/3
+Brick9: worker5:/bricks/disk/1
+Brick10: worker5:/bricks/disk/2
+Brick11: worker6:/bricks/disk/1
+Brick12: worker6:/bricks/disk/2
+gluster volume create ravenvol transport tcp replica 2 worker1:/bricks/disk/1 worker3:/bricks/disk/1 worker2:/bricks/disk/1 worker3:/bricks/disk/2 worker5:/bricks/disk/1 worker3:/bricks/disk/3 worker5:/bricks/disk/2  worker4:/bricks/disk/1 worker6:/bricks/disk/1 worker4:/bricks/disk/2 worker6:/bricks/disk/2 worker4:/bricks/disk/3 force
+
+

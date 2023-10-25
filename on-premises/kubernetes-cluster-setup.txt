@@ -1,0 +1,56 @@
+ *************  AWS-backup server *******************
+ 
+pem key :- raven-server.pem
+username :- ubuntu 
+
+++++++++++++++++++++++++++++++++++++++++++++++++
+
+Public Ip :- 
+
+AWS new backup server
++++++++++++++++++++++++++++++++++++++++++++++++++
+Private IP's :- 
+
+172.31.3.84  master1
+172.31.6.116 master2
+172.31.8.20  master3
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+host.ini
+
+[all]
+master1 ansible_host=172.31.3.84 ansible_user=ubuntu ansible_ssh_private_key_file=/home/ubuntu/k8s/kubespray-2.21.0/raven-server ansible_connection=ssh new_hostname=master1
+master2 ansible_host=172.31.6.116 ansible_user=ubuntu ansible_ssh_private_key_file=/home/ubuntu/k8s/kubespray-2.21.0/raven-server ansible_connection=ssh new_hostname=master2
+master3 ansible_host=172.31.8.20 ansible_user=ubuntu ansible_ssh_private_key_file=/home/ubuntu/k8s/kubespray-2.21.0/raven-server ansible_connection=ssh new_hostname=master3
+
+[kube-master]
+master1
+master2
+master3
+
+[etcd]
+master1
+master2
+master3
+
+[all]
+master1
+master2
+master3
+
+[kube-node]
+master1
+master2
+master3
+
+
+[k8s-cluster:children]
+kube-master
+kube-node
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ansible command :- 
+
+ansible-playbook -i inventory/mycluster/hosts.ini  --become --become-user=root cluster.yml  

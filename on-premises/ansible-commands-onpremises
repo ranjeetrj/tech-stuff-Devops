@@ -1,0 +1,9 @@
+ansible-playbook -i inventory.ini ping.yml -vvv --extra-vars "ansible_user=raven ansible_password=PWD"
+
+
+ansible-playbook -i hosts.ini playbooks/pull.yaml -v -e "rs=pivotchaindata.com" -e "cn=raven-server" -e "tg=dev" -e "un=pivotchain" -e "pw=devops" --extra-vars "ansible_user=raven ansible_password=PWD" --ask-become-pass
+
+
+ansible-playbook -i inventory/mycluster/hosts.ini  --become --become-user=root cluster.yml --extra-vars "ansible_user=raven ansible_password=Pivo8$Mirco?Cha9" --ask-become-pass
+
+

@@ -1,0 +1,26 @@
+Download certificates from your Godaddy account.
+1] It will give you both the csr and private key certificates(server.key).
+2] Download Apache certificate(Zip files) from your godaddy account. Unzip it.
+3]  Login to server #mkdir /etc/nginx/ssl
+#cat f84e19a2f44c6386.crt gd_bundle-g2-g1.crt >> server.crt
+5]Copy server.crt and server.key to /etc/nginx/ssl folder.
+6] Open nginx file and add below content in it
+
+server {
+    listen 443 ssl;
+
+    server_name coolexample.com;
+    ssl_certificate     /etc/nginx/ssl/server.crt;
+    ssl_certificate_key /etc/nginx/ssl/server.key;
+
+    root /usr/share/nginx/coolexample.com/;
+    index index.php  index.html index.htm;
+
+}
+
+
+Save file.
+
+7] restart nginx service
+  #service nginx restart
+
