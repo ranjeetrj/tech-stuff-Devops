@@ -1,0 +1,40 @@
+OCI registry setup :- 
+
+1) Create directory named OCI inside /usr/local/   
+
+2) Create subdirectory named :- auth  registry_data  ssl  inside OCI directory
+
+
+3) Create htpasswd file in auth folder using below command :- 
+	
+		htpasswd -cB htpasswd pivotchain
+
+4) Add ssl certificates inside ssl folder.
+
+5) OCI registry up command :- 
+
+		docker run -d -p 5000:5000 --restart=always --name oci-registry -v /usr/local/OCI/auth:/auth  -v  /usr/local/OCI/registry_data:/var/lib/registry  -e "REGISTRY_AUTH=htpasswd" -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd  -v /usr/local/OCI/ssl/:/certs  -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/boringproxy_xyz_chain.crt  -e REGISTRY_HTTP_TLS_KEY=/certs/server.key  registry
+
+
+6) Important commands. :- 
+
+		helm registry login -u pivotchain boringproxy.xyz:5000
+
+		helm registry logout boringproxy.xyz:5000
+
+		helm push firstchart-0.1.0.tgz oci:// boringproxy.xyz:5000/helm-charts
+
+		helm show all oci:// boringproxy.xyz:5000/helm-charts/firstchart --version 0.1.0
+
+		helm pull oci:// boringproxy.xyz:5000/helm-charts/firstchart --version 0.1.0
+
+		helm template myrelease oci:// boringproxy.xyz:5000/helm-charts/firstchart --version 0.1.0
+
+		helm install myrelease oci:// boringproxy.xyz:5000/helm-charts/firstchart --version 0.1.0
+
+		helm upgrade myrelease oci:// boringproxy.xyz:5000/helm-charts/firstchart --version 0.2.0
+
+
+
+
+

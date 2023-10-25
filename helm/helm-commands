@@ -1,0 +1,106 @@
+Installation:
+curl https://baltocdn.com/helm/signing.asc | sudo apt-key add
+echo "deb https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+apt-get update
+apt-get install helm
+helm version
+
+helm create raven
+helm install raven ./raven/ --dry-run
+helm install raven ./raven/
+
+
+helm dependency build
+helm dependency update
+
+helm install -f values.yaml raven .
+
+
+How to create helm chart and upload it to private repo:
+- helm plugin install https://github.com/hypnoglow/helm-s3.git
+- helm plugin list
+- helm s3 version --mode
+  create one bucket on aws side for example : -->> helm.devopsbyexample.io
+- helm s3 init s3://helm.devopsbyexample.io/charts
+- helm repo add private s3://helm.devopsbyexample.io/charts
+- helm repo list
+- helm create hello-world
+- helm package hello-world
+- helm s3 push --relative ./hello-world-0.1.0.tgz private
+- helm search repo private
+- helm install -n default hello-world private/hello-world --version 0.1.0
+- helm ls -n default
+
+
+
+
+CREATE REPO FOR HELM USING NGINX HTTPS SERVER:
+Execute command on web0server:
+sudo mkdir /var/www/html/charts
+sudo nano /etc/nginx/nginx.conf
+server {
+    listen 80;
+    server_name example.com;  # Replace with your domain name or server IP
+
+    location / {
+        root /var/www/html;
+        index index.html;
+    }
+
+    location /charts {
+        alias /var/www/html/charts;
+        autoindex on;
+    }
+}
+
+
+sudo systemctl restart nginx
+
+
+
+
+
+ON REMOTE MACHINE
+helm package .
+SCP TAR : to WEBSERVER AT PATH: /var/www/html/charts
+
+ON ANOTHER REMOTE MACHINE
+helm repo add myrepo https://boringproxy.xyz/charts
+helm repo update
+helm install raven myrepo/baseservices
+
+#####################################################################################
+
+OCI registry setup :- 
+
+1) Create directory named OCI inside /usr/local/   
+
+2) Create subdirectory named :- auth  registry_data  ssl  inside OCI directory
+
+
+3) Create htpasswd file in auth folder using below command :- 
+	
+		htpasswd -cB htpasswd pivotchain
+
+4) Add ssl certificates inside ssl folder.
+
+5) OCI registry up command :- 
+
+		docker run -d -p 5000:5000 --restart=always --name oci-registry -v /usr/local/OCI/auth:/auth  -v  /usr/local/OCI/registry_data:/var/lib/registry  -e "REGISTRY_AUTH=htpasswd" -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd  -v /usr/local/OCI/ssl/:/certs  -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/boringproxy_xyz_chain.crt  -e REGISTRY_HTTP_TLS_KEY=/certs/server.key  registry
+
+
+6) Important commands. :- 
+
+cd to chart
+helm package . ### It will create one tar file with version number.
+helm registry login -u pivotchain boringproxy.xyz:5000
+helm push baseservices-0.1.0.tgz oci://boringproxy.xyz:5000/helm-charts
+helm show all oci://boringproxy.xyz:5000/helm-charts/baseservices --version 0.1.0
+
+
+helm registry login -u pivotchain boringproxy.xyz:5000
+helm install raven oci://boringproxy.xyz:5000/helm-charts/baseservices --version 0.1.0
+
+
+
+
