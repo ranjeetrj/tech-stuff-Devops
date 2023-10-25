@@ -1,0 +1,31 @@
+MongoDB Kubernetes Operator Setup
+
+link : - https://github.com/mongodb/mongodb-kubernetes-operator/blob/master/docs/install-upgrade.md
+
+Step 1 : git clone https://github.com/mongodb/mongodb-kubernetes-operator.git
+
+Step 2 : cd mongodb-kubernetes-operator
+
+Step 3 : kubectl apply -f config/crd/bases/mongodbcommunity.mongodb.com_mongodbcommunity.yaml
+
+    kubectl get crd/mongodbcommunity.mongodbcommunity.mongodb.com
+
+Step 4 : kubectl apply -k config/rbac/ 
+
+    kubectl get role mongodb-kubernetes-operator
+    kubectl get rolebinding mongodb-kubernetes-operator 
+    kubectl get serviceaccount mongodb-kubernetes-operator 
+
+Step 5 : kubectl create -f config/manager/manager.yaml
+
+Step 6 : Configure edit pv.yaml and mongodb.com_v1_hostpath.yaml  // username ,passwords, pvc , resources,etc
+
+Step 7 : kubectl apply -f /config/samples/arbitrary_statefulset_configuration/pv.yaml
+
+Step 8 : kubectl apply -f /config/samples/arbitrary_statefulset_configuration/mongodb.com_v1_hostpath.yaml
+
+Step 9 : wait for all pods to running
+
+Step 10: kubectl edit svc mongo-svc 
+   
+   change name of svc from mongo-svc to mongo
